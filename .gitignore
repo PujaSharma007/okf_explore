@@ -1,0 +1,13 @@
+# virtual environments (never upload these)
+okvenv/
+venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# files the scripts regenerate
+viz.html
+eval_results.md

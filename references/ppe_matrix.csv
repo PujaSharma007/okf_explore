@@ -1,0 +1,12 @@
+work_type,hazard,required_ppe
+welding,welding-fumes,respirator
+welding,arc-radiation,welding-helmet
+welding,burns,welding-helmet|safety-boots
+grinding,flying-particles,safety-glasses
+grinding,high-noise,hearing-protection
+grinding,burns,safety-boots
+roof-work,fall-from-height,safety-harness
+excavation,trench-collapse,hard-hat|safety-boots
+excavation,fall-from-height,safety-harness
+chemical-handling,chemical-exposure,respirator|chemical-gloves|safety-glasses|safety-boots
+chemical-handling,burns,chemical-gloves|safety-boots

@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Safety Knowledge Network</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --panel: #ffffff; --ink: #1c1c1a; --muted: #62625c; --line: #d9d9d3;
+    --edge: #a9a9a1; --accent: #1f4fd8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #151517; --panel: #1f1f22; --ink: #ececea; --muted: #a0a09a; --line: #34343a;
+            --edge: #5b5b63; --accent: #8fb0ff; }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+         display: grid; grid-template-columns: 1fr 340px; grid-template-rows: auto 1fr; }
+  header { grid-column: 1 / 3; display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center;
+           padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  h1 { font-size: 16px; margin: 0 8px 0 0; }
+  input[type=search], select { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px;
+           background: var(--bg); color: var(--ink); }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+  .legend label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  #cy { grid-column: 1; grid-row: 2; min-height: 0; }
+  aside { grid-column: 2; grid-row: 2; background: var(--panel); border-left: 1px solid var(--line);
+          padding: 16px; overflow: auto; }
+  aside h2 { font-size: 17px; margin: 4px 0 2px; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; color: #fff; }
+  .muted { color: var(--muted); }
+  aside h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 16px 0 6px; }
+  aside ul { list-style: none; padding: 0; margin: 0; }
+  aside li { margin: 2px 0; }
+  aside a { color: var(--accent); cursor: pointer; text-decoration: none; }
+  aside a:hover { text-decoration: underline; }
+  .hint { color: var(--muted); }
+  @media (max-width: 760px) {
+    body { grid-template-columns: 1fr; grid-template-rows: auto 60vh auto; }
+    #cy { grid-column: 1; } aside { grid-column: 1; grid-row: 3; border-left: 0; border-top: 1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Safety knowledge network</h1>
+  <input id="q" type="search" placeholder="Search a concept..." aria-label="Search">
+  <select id="layout" aria-label="Layout">
+    <option value="cose">Layout: network</option>
+    <option value="columns">Layout: columns by type</option>
+    <option value="concentric">Layout: most connected in centre</option>
+    <option value="circle">Layout: circle</option>
+  </select>
+  <div class="legend" id="legend"></div>
+</header>
+<div id="cy" role="img" aria-label="Network of linked safety concepts"></div>
+<aside id="panel">
+  <h2>How to read this</h2>
+  <p class="hint">Each dot is one file in your bundle. Each line is a link written inside a file. Click a dot to see
+  what it links to and what links to it. Drag dots around, scroll to zoom.</p>
+  <p class="hint">A line with an arrow at one end is a one-way link. A line with arrows at both ends means both files
+  link to each other.</p>
+</aside>
+
+<script>/*CYTOSCAPE*/</script>
+<script>
+const DATA = /*DATA*/null;
+const ORDER = ["Work Type", "Hazard", "PPE", "Safety Rule", "Preventive Measure"];
+const COLORS = { "Work Type": "#2563eb", "Hazard": "#dc2626", "PPE": "#15803d",
+                 "Safety Rule": "#7e22ce", "Preventive Measure": "#b45309" };
+const color = t => COLORS[t] || "#6b7280";
+const types = ORDER.filter(t => DATA.nodes.some(n => n.type === t))
+  .concat([...new Set(DATA.nodes.map(n => n.type))].filter(t => !ORDER.includes(t)));
+const byId = Object.fromEntries(DATA.nodes.map(n => [n.id, n]));
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+const cy = cytoscape({
+  container: document.getElementById("cy"),
+  elements: [
+    ...DATA.nodes.map(n => ({ data: { id: n.id, label: n.label, type: n.type, degree: n.degree } })),
+    ...DATA.edges.map((e, i) => ({ data: { id: "e" + i, source: e.source, target: e.target }, classes: e.both ? "both" : "one" })),
+  ],
+  style: [
+    { selector: "node", style: {
+        "background-color": e => color(e.data("type")), "label": "data(label)", "font-size": 11,
+        "color": css("--ink"), "text-valign": "bottom", "text-margin-y": 4, "text-wrap": "wrap", "text-max-width": 90,
+        "width": e => 16 + Math.min(e.data("degree"), 14) * 1.8, "height": e => 16 + Math.min(e.data("degree"), 14) * 1.8,
+        "border-width": 2, "border-color": css("--bg"), "min-zoomed-font-size": 7 } },
+    { selector: "edge", style: { "width": 1.2, "line-color": css("--edge"), "curve-style": "bezier",
+        "target-arrow-color": css("--edge"), "source-arrow-color": css("--edge"), "arrow-scale": 0.9, "opacity": 0.75 } },
+    { selector: "edge.one", style: { "target-arrow-shape": "triangle" } },
+    { selector: "edge.both", style: { "target-arrow-shape": "triangle", "source-arrow-shape": "triangle" } },
+    { selector: ".faded", style: { "opacity": 0.1 } },
+    { selector: "node.hit", style: { "border-color": css("--accent"), "border-width": 4 } },
+    { selector: "edge.hit", style: { "line-color": css("--accent"), "target-arrow-color": css("--accent"),
+        "source-arrow-color": css("--accent"), "width": 2.4, "opacity": 1 } },
+    { selector: "node:selected", style: { "border-color": css("--ink"), "border-width": 4 } },
+  ],
+  wheelSensitivity: 0.25, minZoom: 0.2, maxZoom: 3,
+});
+
+function runLayout(name) {
+  if (name === "columns") {
+    const cols = {};
+    DATA.nodes.forEach(n => (cols[n.type] = cols[n.type] || []).push(n.id));
+    const h = cy.height(), w = cy.width();
+    cy.layout({ name: "preset", animate: true, animationDuration: 400, fit: true, padding: 40,
+      positions: n => {
+        const t = n.data("type"), col = types.indexOf(t), list = cols[t], i = list.indexOf(n.id());
+        return { x: col * Math.max(220, w / types.length), y: (i - (list.length - 1) / 2) * 56 };
+      } }).run();
+    return;
+  }
+  const opts = {
+    cose: { name: "cose", animate: false, nodeRepulsion: () => 9000, idealEdgeLength: () => 70, gravity: 0.6,
+            numIter: 1500, randomize: true, padding: 30 },
+    concentric: { name: "concentric", concentric: n => n.data("degree"), levelWidth: () => 2, minNodeSpacing: 30, padding: 30 },
+    circle: { name: "circle", padding: 30 },
+  }[name];
+  cy.layout(Object.assign({ fit: true }, opts)).run();
+}
+
+// legend with filters
+const legend = document.getElementById("legend");
+types.forEach(t => {
+  const l = document.createElement("label");
+  l.innerHTML = `<input type="checkbox" checked data-type="${t}"><span class="dot" style="background:${color(t)}"></span>${t}`;
+  legend.appendChild(l);
+});
+legend.addEventListener("change", () => {
+  const on = new Set([...legend.querySelectorAll("input:checked")].map(i => i.dataset.type));
+  cy.batch(() => cy.nodes().forEach(n => n.style("display", on.has(n.data("type")) ? "element" : "none")));
+});
+
+function clearHighlight() { cy.elements().removeClass("faded hit"); }
+function focusNode(id) {
+  const n = cy.getElementById(id); if (!n.length) return;
+  clearHighlight();
+  const hood = n.closedNeighborhood();
+  cy.elements().not(hood).addClass("faded");
+  hood.edges().filter(e => e.source().id() === id || e.target().id() === id).addClass("hit");
+  n.addClass("hit");
+  cy.nodes().unselect(); n.select();
+  cy.animate({ center: { eles: n }, duration: 250 });
+  showPanel(id);
+}
+const li = ids => ids.length ? "<ul>" + ids.map(i => `<li><a data-go="${i}">${byId[i].label}</a> <span class="muted">· ${byId[i].type}</span></li>`).join("") + "</ul>"
+                              : '<p class="muted">None</p>';
+function showPanel(id) {
+  const n = byId[id];
+  document.getElementById("panel").innerHTML =
+    `<span class="badge" style="background:${color(n.type)}">${n.type}</span>
+     <h2>${n.label}</h2>
+     <p>${n.description}</p>
+     <p class="muted">File: ${n.id}.md · status: ${n.status} · ${n.degree} connection${n.degree === 1 ? "" : "s"}</p>
+     <h3>This file links to (${n.out.length})</h3>${li(n.out)}
+     <h3>Linked from (${n.in.length})</h3>${li(n.in)}`;
+}
+document.getElementById("panel").addEventListener("click", e => {
+  const go = e.target.dataset && e.target.dataset.go; if (go) focusNode(go);
+});
+cy.on("tap", "node", e => focusNode(e.target.id()));
+cy.on("tap", e => { if (e.target === cy) clearHighlight(); });
+
+document.getElementById("layout").addEventListener("change", e => runLayout(e.target.value));
+document.getElementById("q").addEventListener("input", e => {
+  const s = e.target.value.trim().toLowerCase();
+  cy.nodes().removeClass("hit"); if (!s) { clearHighlight(); return; }
+  const m = cy.nodes().filter(n => (n.data("label") + " " + n.id()).toLowerCase().includes(s));
+  cy.elements().addClass("faded"); m.removeClass("faded").addClass("hit");
+  if (m.length === 1) focusNode(m[0].id());
+});
+runLayout("cose");
+</script>
+</body>
+</html>
